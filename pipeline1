@@ -1,0 +1,52 @@
+pipeline{
+    agent any
+    tools{
+        maven 'maven'
+    }
+    stages{
+        stage('checkout'){
+            steps{
+                git credentialsId: 'gitcreds', url: 'https://github.com/Aarvitexsathya/maven-demo.git'
+            }
+        }
+        stage('build'){
+            steps{
+                sh 'mvn clean package'
+            }
+        }
+        stage('verify build') {
+            steps {
+                sh 'ls -l target'
+            }
+        }
+        stage('sonarQube analysis'){
+            steps{
+                withSonarQubeEnv(installationName: 'sonar', credentialsId: 'sonarcreds') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+
+        }
+        stage('nexus upload') {
+            steps {
+                nexusArtifactUploader(
+                    artifacts: [[
+                        artifactId: 'demo',
+                        classifier: '',
+                        file: 'target/demo-0.0.1-SNAPSHOT.jar',
+                        type: 'jar'
+                    ]],
+                    credentialsId: 'nexuscreds',
+                    groupId: 'aarvitex.com',
+                    nexusUrl: '54.164.82.164:8081',
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    repository: 'sample',
+                    version: '0.1'
+                )
+            }
+        }
+            
+    }
+}
+
